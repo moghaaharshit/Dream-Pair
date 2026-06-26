@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dreampair Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    @font-face {
+      font-family: 'SpicyRice';
+      src: url('SpicyRice-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    .sidebar { transition: transform 0.3s ease; }
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; z-index: 50; height: 100%; transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+    }
+    @keyframes heartPump {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.3); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.2); }
+      70% { transform: scale(1); }
+    }
+    @keyframes connectFade {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes dotBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-8px); opacity: 1; }
+    }
+    @keyframes splashOut {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.05); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    @keyframes topbarSlide {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    .nav-section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #9ca3af; text-transform: uppercase; padding: 12px 16px 4px; }
+    .nav-btn { width: 100%; text-align: left; padding: 10px 16px; border-radius: 8px; transition: background 0.2s; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .nav-btn:hover { background: #1f2937; }
+    .nav-btn.active { background: #7c3aed; }
+    .field-group { margin-bottom: 16px; }
+    .field-label { display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .field-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+    .btn-save { background: linear-gradient(135deg, #7c3aed, #5b21b6); background-size: 200% auto !important; animation: runningShine 4s linear infinite !important; color: white; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; width: 100%; transition: opacity 0.2s; }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-secondary { background: #f3f4f6; color: #374151; padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 14px; cursor: pointer; border: 1px solid #e5e7eb; }
+    .section-card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #f3f4f6; }
+    .table-th { padding: 12px 16px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; background: #f9fafb; }
+    .table-td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+    .badge-admin { background: #ede9fe; color: #5b21b6; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+    .badge-active { background: #dcfce7; color: #15803d; font-size: 11px; padding: 3px 8px; border-radius: 99px; }
+    .badge-expired { background: #fee2e2; color: #b91c1c; font-size: 11px; padding: 3px 8px; border-radius: 99px; }
+    .action-btn-edit { color: #2563eb; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .action-btn-edit:hover { color: #1d4ed8; text-decoration: underline; }
+    .action-btn-del { color: #dc2626; font-size: 13px; font-weight: 500; cursor: pointer; margin-left: 12px; }
+    .action-btn-del:hover { color: #b91c1c; text-decoration: underline; }
+    .section-header { font-family: 'SpicyRice', serif; font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+    .section-subheader { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+    .border-accent { border-left: 4px solid #7c3aed; padding-left: 16px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+
+    const ALL_VIEWS = [
+      { id: 'users',         label: '👥 User Management',       group: 'MANAGEMENT' },
+      { id: 'accountrequests', label: '📋 Account Requests',    group: 'MANAGEMENT' },
+      { id: 'profiles',      label: '💖 Profiles',              group: 'MANAGEMENT' },
+      { id: 'testimonials',  label: '💬 Testimonials',          group: 'MANAGEMENT' },
+      { id: 'hero',          label: '🏠 Hero Section',          group: 'WEBSITE CONTENT' },
+      { id: 'stats',         label: '📊 Stats Section',         group: 'WEBSITE CONTENT' },
+      { id: 'globalreach',   label: '🌐 Global Reach',          group: 'WEBSITE CONTENT' },
+      { id: 'about',         label: '🏛️ About Section',         group: 'WEBSITE CONTENT' },
+      { id: 'statsbanner',   label: '📈 Stats Pink Banner',     group: 'WEBSITE CONTENT' },
+      { id: 'journey',       label: '🗺️ Journey Timeline',      group: 'WEBSITE CONTENT' },
+      { id: 'trustbanner',   label: '⭐ Trust Banner',          group: 'WEBSITE CONTENT' },
+      { id: 'whysection',    label: '💡 Why Choose Section',    group: 'WEBSITE CONTENT' },
+      { id: 'logo',          label: '🖼️ Logo',                   group: 'WEBSITE CONTENT' },
+      { id: 'footer',        label: '📝 Footer Section',         group: 'WEBSITE CONTENT' },
+      { id: 'countriesballs', label: '🌍 Countries Balls',      group: 'MANAGEMENT' },
+    ];
+
+    /* ── CLOUDINARY HELPERS ── */
+    async function sha1(str) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function uploadToCloudinary(file) {
+      // Compress image to under 250KB first
+      const compressed = await compressImage(file);
+
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`, {
+        method: 'POST', body: formData
+      });
+      const result = await res.json();
+      if (result.error) throw new Error(result.error.message);
+      return result;
+    }
+
+    async function deleteFromCloudinary(publicId) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const paramsStr = `public_id=${publicId}&timestamp=${timestamp}`;
+      const signature = await sha1(paramsStr + CLOUDINARY_CONFIG.apiSecret);
+
+      const formData = new FormData();
+      formData.append('public_id', publicId);
+      formData.append('api_key', CLOUDINARY_CONFIG.apiKey);
+      formData.append('timestamp', timestamp);
+      formData.append('signature', signature);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/destroy`, {
+        method: 'POST', body: formData
+      });
+      return await res.json();
+    }
+
+    function getPublicIdFromUrl(url) {
+      if (!url || !url.includes('cloudinary')) return null;
+      try {
+        const parts = url.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        if (uploadIndex === -1) return null;
+        const afterUpload = parts.slice(uploadIndex + 1);
+        if (afterUpload[0]?.startsWith('v')) afterUpload.shift();
+        const publicId = afterUpload.join('/').replace(/\.[^/.]+$/, '');
+        return publicId || null;
+      } catch(e) { return null; }
+    }
+
+    /* ── IMAGE COMPRESSION (max 250KB) ── */
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            // Resize to max 1200px on longest side
+            let w = img.width, h = img.height;
+            const MAX_DIM = 1200;
+            if (w > MAX_DIM || h > MAX_DIM) {
+              const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Check if format supports transparency
+            const hasAlpha = file.type === 'image/png' || file.type === 'image/webp';
+
+            if (hasAlpha) {
+              // PNG/WEBP — preserve transparency (no white fill)
+              ctx.clearRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+              canvas.toBlob((blob) => {
+                if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+                const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.png'), { type: 'image/png' });
+                resolve(compressedFile);
+              }, 'image/png');
+            } else {
+              // JPEG/WEBP — fill white background (these don't have transparency)
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+
+              // Iteratively reduce quality until file is under 250KB
+              const MAX_KB = 250;
+              const tryQuality = (quality) => {
+                canvas.toBlob((blob) => {
+                  if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+                  if (blob.size / 1024 <= MAX_KB || quality <= 0.1) {
+                    // Under limit, return compressed file
+                    const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+                    resolve(compressedFile);
+                  } else {
+                    // Reduce quality further
+                    tryQuality(quality - 0.1);
+                  }
+                }, 'image/jpeg', quality);
+              };
+              tryQuality(0.8);
+            }
+          };
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /* ── IMAGE UPLOADER COMPONENT ── */
+    function ImageUploader({ currentUrl, label, onUpload, hidePreview }) {
+      const [uploading, setUploading] = useState(false);
+      const [preview, setPreview] = useState(currentUrl || '');
+      const [currentPublicId, setCurrentPublicId] = useState(currentUrl ? getPublicIdFromUrl(currentUrl) : '');
+      const fileInputRef = useRef(null);
+
+      // Update preview when currentUrl changes externally
+      useEffect(() => {
+        setPreview(currentUrl || '');
+        setCurrentPublicId(currentUrl ? getPublicIdFromUrl(currentUrl) : '');
+      }, [currentUrl]);
+
+      const handleFileSelect = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+          if (currentPublicId) {
+            await deleteFromCloudinary(currentPublicId).catch(() => {});
+          }
+          const result = await uploadToCloudinary(file);
+          const newUrl = result.secure_url;
+          setPreview(newUrl);
+          setCurrentPublicId(result.public_id);
+          if (onUpload) onUpload(newUrl);
+        } catch (err) {
+          alert('Upload failed: ' + err.message);
+          console.error('Upload error:', err);
+        } finally {
+          setUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      };
+
+      return React.createElement('div', { className: 'field-group' },
+        label ? React.createElement('label', { className: 'field-label' }, label) : null,
+        React.createElement('div', {
+          style: {
+            border: '2px dashed ' + (preview ? '#7c3aed' : '#d1d5db'),
+            borderRadius: 12, padding: preview && !hidePreview ? 8 : 24,
+            textAlign: 'center', cursor: 'pointer',
+            background: preview && !hidePreview ? '#f9fafb' : 'white',
+            transition: 'border-color 0.2s, background 0.2s',
+            position: 'relative'
+          },
+          onClick: () => fileInputRef.current?.click(),
+          onMouseOver: e => { if (!preview) e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#f5f3ff'; },
+          onMouseOut: e => { if (!preview) e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.background = 'white'; }
+        },
+          React.createElement('input', {
+            ref: fileInputRef, type: 'file', accept: 'image/*',
+            onChange: handleFileSelect,
+            style: { display: 'none' }
+          }),
+          uploading
+            ? React.createElement('div', { style: { padding: 12 } },
+                React.createElement('div', { style: { fontSize: 32, marginBottom: 8 } }, '⏳'),
+                React.createElement('div', { style: { fontSize: 13, color: '#6b7280', fontWeight: 500 } }, 'Compressing & uploading...')
+              )
+            : preview && !hidePreview
+              ? React.createElement('div', { style: { position: 'relative' } },
+                  React.createElement('img', { src: preview, alt: 'Preview', style: { width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 8 } }),
+                  React.createElement('div', {
+                    onClick: (e) => { e.stopPropagation(); fileInputRef.current?.click(); },
+                    style: {
+                      position: 'absolute', bottom: 8, right: 8,
+                      background: 'rgba(124,58,237,0.9)', color: 'white',
+                      padding: '6px 14px', borderRadius: 8, fontSize: 12,
+                      cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6
+                    }
+                  }, '🔄 Replace'),
+                  React.createElement('div', {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (currentPublicId) deleteFromCloudinary(currentPublicId).catch(() => {});
+                      setPreview('');
+                      setCurrentPublicId('');
+                      if (onUpload) onUpload('');
+                    },
+                    style: {
+                      position: 'absolute', top: 8, right: 8,
+                      background: 'rgba(239,68,68,0.9)', color: 'white',
+                      width: 28, height: 28, borderRadius: '50%',
+                      cursor: 'pointer', fontWeight: 700, fontSize: 16,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: 'none'
+                    }
+                  }, '✕')
+                )
+              : React.createElement('div', null,
+                  React.createElement('div', { style: { fontSize: 36, marginBottom: 8 } }, '📷'),
+                  React.createElement('div', { style: { fontSize: 14, color: '#6b7280', fontWeight: 500 } }, 'Click to select image'),
+                  React.createElement('div', { style: { fontSize: 11, color: '#9ca3af', marginTop: 4 } }, 'PNG, JPG, WEBP • Compressed to ≤250KB')
+                )
+        )
+      );
+    }
+
+    /* ── ADMIN LOGIN ── */
+    function AdminLogin({ onLogin }) {
+      const [custId, setCustId] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        // Check master admin (hardcoded)
+        if (custId === 'master7363951715' && password === '7363951715') {
+          setLoading(false);
+          onLogin({ id: 'master7363951715', name: 'Master Admin' }, true);
+          return;
+        }
+
+        // Check Firestore for admin user
+        try {
+          const doc = await db.collection('users').doc(custId).get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.isAdmin && data.password === password) {
+              setLoading(false);
+              onLogin({ id: doc.id, name: data.name || 'Admin' }, false);
+            } else if (data.password !== password) {
+              setLoading(false);
+              setError('❌ Incorrect password');
+            } else {
+              setLoading(false);
+              setError('❌ You do not have admin access');
+            }
+          } else {
+            setLoading(false);
+            setError('❌ Admin not found');
+          }
+        } catch (err) {
+          setLoading(false);
+          setError('❌ Error: ' + err.message);
+        }
+      };
+
+      return (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'linear-gradient(135deg, #1a0020 0%, #3b0764 50%, #5b21b6 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 24, padding: '48px 40px 40px',
+            width: '100%', maxWidth: 420, textAlign: 'center',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ fontSize: 64, marginBottom: 16, animation: 'heartPump 1.5s infinite' }}>💗</div>
+            <h2 style={{ fontFamily: 'SpicyRice', fontSize: 24, fontWeight: 700, color: '#1a0020', marginBottom: 8 }}>
+              Admin Login
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 32 }}>
+              Enter your credentials to access the admin panel.
+            </p>
+
+            <form onSubmit={handleLogin}>
+              <div className="field-group" style={{ textAlign: 'left' }}>
+                <label className="field-label">Customer ID</label>
+                <input type="text" value={custId} onChange={e => setCustId(e.target.value)}
+                  required className="field-input" placeholder="Enter Customer ID" />
+              </div>
+              <div className="field-group" style={{ textAlign: 'left' }}>
+                <label className="field-label">Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  required className="field-input" placeholder="Enter Password" />
+              </div>
+
+              {error && (
+                <div style={{ color: '#ef4444', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>{error}</div>
+              )}
+
+              <button type="submit" disabled={loading}
+                style={{
+                  width: '100%', padding: '14px', border: 'none', borderRadius: 10,
+                  background: loading ? '#d1d5db' : 'linear-gradient(135deg, #7c3aed, #5b21b6)',
+                  color: 'white', fontSize: 16, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'opacity 0.2s', marginTop: 8
+                }}>
+                {loading ? '⏳ Verifying...' : '🔐 Login to Admin Panel'}
+              </button>
+            </form>
+
+            <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 20 }}>
+              Only authorized admins can access this panel.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── CONNECTING SPLASH ── */
+    function ConnectingSplash({ onDone }) {
+      const [step, setStep] = useState(0);
+      const steps = ['Initializing admin panel...', 'Connecting to database server...', 'Fetching live data...', 'All systems ready!'];
+
+      useEffect(() => {
+        let t;
+        if (step < steps.length - 1) {
+          t = setTimeout(() => setStep(s => s + 1), 800);
+        } else {
+          t = setTimeout(onDone, 900);
+        }
+        return () => clearTimeout(t);
+      }, [step]);
+
+      return (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'linear-gradient(135deg, #1a0020 0%, #3d0040 50%, #6a0572 100%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          animation: step === steps.length - 1 ? 'splashOut 0.8s 0.8s ease forwards' : 'none'
+        }}>
+          {/* Heart */}
+          <div style={{ fontSize: 80, animation: 'heartPump 1.2s infinite', marginBottom: 32, filter: 'drop-shadow(0 0 20px rgba(124,58,237,0.6))' }}>💗</div>
+          <h1 style={{ fontFamily: 'SpicyRice', color: 'white', fontSize: 28, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>LoveConnect Admin</h1>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 40 }}>v3.0 — Full CMS Panel</p>
+
+          {/* Steps */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40, width: 280 }}>
+            {steps.map((s, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                opacity: i <= step ? 1 : 0.25,
+                transition: 'opacity 0.4s',
+                animation: i === step ? 'connectFade 0.4s ease' : 'none'
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                  background: i < step ? '#22c55e' : i === step ? '#7c3aed' : '#4b5563',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, transition: 'background 0.4s'
+                }}>{i < step ? '✓' : i === step ? '●' : '○'}</div>
+                <span style={{ color: i <= step ? 'white' : 'rgba(255,255,255,0.35)', fontSize: 14, fontWeight: i === step ? 600 : 400 }}>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bouncing dots */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{
+                width: 10, height: 10, borderRadius: '50%',
+                background: 'var(--pink, #7c3aed)',
+                animation: `dotBounce 1s ${i * 0.15}s infinite`
+              }} />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── TOPBAR ── */
+    function TopBar() {
+      const [time, setTime] = useState(new Date());
+      useEffect(() => {
+        const t = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(t);
+      }, []);
+      return (
+        <div style={{
+          background: 'linear-gradient(90deg, #1a0020 0%, #3b0764 100%)',
+          padding: '10px 28px', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', flexShrink: 0,
+          animation: 'topbarSlide 0.5s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 1.5s infinite', boxShadow: '0 0 6px #22c55e' }} />
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Live data fetching from database server</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{time.toLocaleTimeString()}</span>
+            <div style={{
+              background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)',
+              color: '#4ade80', fontSize: 12, fontWeight: 600,
+              padding: '3px 12px', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 1.5s infinite' }} />
+              Connected
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+      const [currentView, setCurrentView] = useState('users');
+      const [connected, setConnected] = useState(false);
+      const [loggedInAdmin, setLoggedInAdmin] = useState(null);
+      const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+
+      // Filter VIEWS based on admin type
+      const VIEWS = isMasterAdmin
+        ? ALL_VIEWS
+        : ALL_VIEWS.filter(v => v.id === 'users' || v.id === 'accountrequests');
+
+      const groups = [...new Set(VIEWS.map(v => v.group))];
+
+      if (!loggedInAdmin) {
+        return <AdminLogin onLogin={(admin, master) => {
+          setLoggedInAdmin(admin);
+          setIsMasterAdmin(master);
+          setConnected(true);
+        }} />;
+      }
+
+      return (
+        <div className="flex h-screen overflow-hidden" style={{ flexDirection: 'column' }}>
+          {!connected && <ConnectingSplash onDone={() => setConnected(true)} />}
+          <TopBar />
+          <div className="flex flex-1 overflow-hidden">
+          {sidebarOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
+          <div className={`sidebar bg-gray-900 text-white w-64 flex flex-col ${sidebarOpen ? 'open' : ''} md:relative z-50 overflow-y-auto`}>
+            <div className="p-5 border-b border-gray-800 sticky top-0 bg-gray-900">
+              <h2 className="text-lg font-bold text-pink-400 flex items-center gap-2" style={{ fontFamily: 'SpicyRice' }}>💗 LoveConnect Admin</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                {isMasterAdmin ? '👑 Master Admin' : '👤 Admin Panel'}
+              </p>
+            </div>
+            <nav className="flex-1 p-3">
+              {groups.map(group => (
+                <div key={group}>
+                  <div className="nav-section-label">{group}</div>
+                  {VIEWS.filter(v => v.group === group).map(v => (
+                    <button key={v.id} className={`nav-btn ${currentView === v.id ? 'active' : ''}`}
+                      onClick={() => { setCurrentView(v.id); setSidebarOpen(false); }}>
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </nav>
+            <div className="p-4 border-t border-gray-800 text-xs text-gray-500 flex flex-col gap-2">
+              <div>LoveConnect Admin Panel</div>
+              <button onClick={() => { setLoggedInAdmin(null); setIsMasterAdmin(false); setConnected(false); }}
+                style={{background:'rgba(255,255,255,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)', padding:'6px 12px', borderRadius:6, fontSize:12, cursor:'pointer'}}>
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col h-full overflow-y-auto">
+            <header className="bg-white shadow-sm p-4 flex items-center md:hidden sticky top-0 z-10">
+              <button onClick={() => setSidebarOpen(true)} className="text-gray-600 mr-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+              </button>
+              <h1 className="text-lg font-semibold" style={{ fontFamily: 'SpicyRice' }}>{VIEWS.find(v => v.id === currentView)?.label}</h1>
+            </header>
+            <main className="p-6 md:p-8 flex-1">
+              {currentView === 'users'        && <UserManagement isMasterAdmin={isMasterAdmin} loggedInAdmin={loggedInAdmin} />}
+              {currentView === 'accountrequests' && <AccountRequestsEditor />}
+              {currentView === 'profiles'     && <ProfileManagement />}
+              {currentView === 'testimonials' && <TestimonialManagement />}
+              {currentView === 'hero'         && <HeroEditor />}
+              {currentView === 'stats'        && <StatsEditor />}
+              {currentView === 'globalreach'  && <GlobalReachEditor />}
+              {currentView === 'about'        && <AboutSectionEditor />}
+              {currentView === 'statsbanner'  && <StatsBannerPinkEditor />}
+              {currentView === 'journey'      && <JourneyEditor />}
+              {currentView === 'trustbanner'  && <TrustBannerEditor />}
+              {currentView === 'whysection'   && <WhySectionEditor />}
+              {currentView === 'logo'         && <LogoEditor />}
+              {currentView === 'footer'       && <FooterEditor />}
+              {currentView === 'countriesballs' && <CountriesBallsEditor />}
+            </main>
+          </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── GLOBAL CONTENT HOOK ── */
+    function useGlobalContent(keys, customDefaults) {
+      const builtinDefaults = {
+        heroTitle: 'Find Genuine Connections That Last a Lifetime',
+        heroSubtitle: 'Join thousands of real people who are looking for meaningful relationships and a better tomorrow.',
+        heroImg: '',
+        statsNum1: '50K+', statsLabel1: 'Happy Members',
+        statsNum2: '10K+', statsLabel2: 'Success Stories',
+        statsNum3: '4.8/5', statsLabel3: 'Average Rating',
+        cta1Title: 'Looking For Someone Special?',
+        cta1Desc: 'Join our community and find your perfect match today!',
+        cta1Img: './looking.png',
+        whyTitle: 'Why Choose LoveConnect?',
+        whySubtitle: 'We provide the safest, most effective platform for finding real love and lasting connections.',
+        why1Title: 'Privacy First',   why1Desc: 'Your personal data is encrypted and kept highly secure.',
+        why2Title: 'Smart & Simple',  why2Desc: 'Our intelligent matchmaking algorithm does the heavy lifting.',
+        why3Title: 'Real Connections',why3Desc: 'Built for people seeking genuine, meaningful relationships.',
+        why4Title: '24/7 Support',    why4Desc: 'Our customer success team is available around the clock.',
+        cta2Title: 'Ready To Start Your Journey?',
+        cta2Desc: 'Join thousands of happy members and find someone special today!',
+        cta2Img: './couple.png'
+      };
+      // Merge custom defaults into built-in (custom takes priority)
+      const allDefaults = { ...builtinDefaults, ...(customDefaults || {}) };
+      const init = {};
+      keys.forEach(k => init[k] = allDefaults[k] || '');
+      const [data, setData] = useState(init);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        db.collection('website_content').doc('global').get().then(doc => {
+          if (doc.exists) {
+            const fetched = {};
+            keys.forEach(k => fetched[k] = doc.data()[k] || allDefaults[k] || '');
+            setData(fetched);
+          }
+          setLoading(false);
+        });
+      }, []);
+
+      const save = async (e) => {
+        e.preventDefault();
+        await db.collection('website_content').doc('global').set(data, { merge: true });
+        alert('Saved successfully!');
+      };
+
+      const handle = (e) => setData(d => ({...d, [e.target.name]: e.target.value}));
+
+      return { data, handle, save, loading };
+    }
+
+    /* ── CONTENT EDITORS ── */
+    function Field({ label, name, value, onChange, type='text', rows }) {
+      return (
+        <div className="field-group">
+          <label className="field-label">{label}</label>
+          {rows
+            ? <textarea name={name} value={value} onChange={onChange} rows={rows} className="field-input" />
+            : <input type={type} name={name} value={value} onChange={onChange} className="field-input" />}
+        </div>
+      );
+    }
+
+    function HeroEditor() {
+      const { data, handle, save, loading } = useGlobalContent(['heroTitle','heroSubtitle','heroImg']);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">🏠 Hero Section</h2>
+          <p className="section-subheader">Edit the main headline, subtitle and background image of the website's hero.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <Field label="Main Title" name="heroTitle" value={data.heroTitle} onChange={handle} />
+              <Field label="Subtitle / Description" name="heroSubtitle" value={data.heroSubtitle} onChange={handle} rows={3} />
+              <ImageUploader label="Background Image" currentUrl={data.heroImg} onUpload={(url) => { const e = { target: { name: 'heroImg', value: url } }; handle(e); }} />
+              <button type="submit" className="btn-save">💾 Save Hero Section</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function StatsEditor() {
+      const keys = ['statsNum1','statsLabel1','statsNum2','statsLabel2','statsNum3','statsLabel3'];
+      const { data, handle, save, loading } = useGlobalContent(keys);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">📊 Stats Section</h2>
+          <p className="section-subheader">Edit the 3 statistics displayed in the bar below the hero.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              {[1,2,3].map(n => (
+                <div key={n} className="border-accent mb-6">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Stat {n}</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Number (e.g. 50K+)" name={`statsNum${n}`} value={data[`statsNum${n}`]} onChange={handle} />
+                    <Field label="Label (e.g. Happy Members)" name={`statsLabel${n}`} value={data[`statsLabel${n}`]} onChange={handle} />
+                  </div>
+                </div>
+              ))}
+              <button type="submit" className="btn-save">💾 Save Stats</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function WhySectionEditor() {
+      const keys = ['whyTitle','whySubtitle','why1Title','why1Desc','why2Title','why2Desc','why3Title','why3Desc','why4Title','why4Desc'];
+      const { data, handle, save, loading } = useGlobalContent(keys);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">💡 Why Choose Section</h2>
+          <p className="section-subheader">Edit the heading, subtitle and all 4 feature cards in the "Why Choose LoveConnect?" section.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Section Heading</h4>
+                <Field label="Title" name="whyTitle" value={data.whyTitle} onChange={handle} />
+                <Field label="Subtitle" name="whySubtitle" value={data.whySubtitle} onChange={handle} rows={2} />
+              </div>
+              {[1,2,3,4].map(n => (
+                <div key={n} className="border-accent mb-6">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Feature Card {n}</h4>
+                  <Field label="Card Title" name={`why${n}Title`} value={data[`why${n}Title`]} onChange={handle} />
+                  <Field label="Card Description" name={`why${n}Desc`} value={data[`why${n}Desc`]} onChange={handle} rows={2} />
+                </div>
+              ))}
+              <button type="submit" className="btn-save">💾 Save Why Section</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── USER MANAGEMENT ── */
+    function UserManagement({ isMasterAdmin, loggedInAdmin }) {
+      const initForm = { name:'', phone:'', email:'', amount:'', endDate:'', customerId:'', password:'', isAdmin:false, photo:'' };
+      const [form, setForm] = useState(initForm);
+      const [users, setUsers] = useState([]);
+      const [editId, setEditId] = useState(null);
+
+      const MASTER_ADMIN_ID = 'master7363951715';
+
+      useEffect(() => {
+        return db.collection('users').onSnapshot(snap => {
+          const allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          // Master admin sees all users; regular admin sees only users they created
+          if (isMasterAdmin || !loggedInAdmin) {
+            setUsers(allUsers);
+          } else {
+            setUsers(allUsers.filter(u => u.createdBy === loggedInAdmin.id));
+          }
+        });
+      }, [isMasterAdmin, loggedInAdmin]);
+
+      const handleChange = e => setForm(f => ({...f, [e.target.name]: e.target.type==='checkbox' ? e.target.checked : e.target.value}));
+
+      const handleSubmit = async e => {
+        e.preventDefault();
+        // Normal admins cannot give admin access
+        if (!isMasterAdmin && form.isAdmin) {
+          alert('You do not have permission to create admin users.');
+          return;
+        }
+        const docId = editId || form.customerId;
+        const data = {
+          name: form.name, phone: form.phone, email: form.email,
+          subscriptionAmount: form.amount, subscriptionEndDate: form.endDate,
+          password: form.password, photo: form.photo || '',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        // Only master admin can set isAdmin flag
+        if (isMasterAdmin) {
+          data.isAdmin = form.isAdmin;
+        }
+        // Track which admin created this user (only set on creation, not update)
+        if (!editId && loggedInAdmin) {
+          data.createdBy = loggedInAdmin.id;
+        }
+        await db.collection('users').doc(docId).set(data, { merge: true });
+        alert(`User ${editId ? 'updated' : 'created'} successfully!`);
+        setForm(initForm); setEditId(null);
+      };
+
+      const handleEdit = u => {
+        // Normal admins cannot edit other admin accounts
+        if (!isMasterAdmin && u.isAdmin) {
+          alert('You cannot edit admin accounts.');
+          return;
+        }
+        // Normal admins cannot edit master admin
+        if (u.id === MASTER_ADMIN_ID) {
+          alert('You cannot edit the master admin account.');
+          return;
+        }
+        setForm({ name:u.name||'', phone:u.phone||'', email:u.email||'', amount:u.subscriptionAmount||'', endDate:u.subscriptionEndDate||'', customerId:u.id, password:u.password||'', isAdmin:u.isAdmin||false, photo:u.photo||'' });
+        setEditId(u.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleDelete = async id => {
+        // Prevent deleting master admin
+        if (id === MASTER_ADMIN_ID) {
+          alert('You cannot delete the master admin account!');
+          return;
+        }
+        // Normal admins cannot delete admin users
+        const user = users.find(u => u.id === id);
+        if (!isMasterAdmin && user?.isAdmin) {
+          alert('You cannot delete admin accounts.');
+          return;
+        }
+        if (confirm('Delete this user?')) await db.collection('users').doc(id).delete();
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto">
+          <h2 className="section-header">👥 User Management</h2>
+          <p className="section-subheader">{editId ? `Editing user: ${editId}` : 'Add a new user or manage existing users.'}</p>
+          
+          <div className="section-card mb-8">
+            <h3 className="font-semibold text-base mb-5">{editId ? '✏️ Edit User' : '➕ Add New User'}</h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="field-group"><label className="field-label">Customer Name</label><input required name="name" value={form.name} onChange={handleChange} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Phone No</label><input required name="phone" value={form.phone} onChange={handleChange} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Email ID</label><input required type="email" name="email" value={form.email} onChange={handleChange} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Customer ID</label><input required name="customerId" value={form.customerId} onChange={handleChange} className="field-input" disabled={!!editId} style={editId ? {opacity:0.5} : {}} /></div>
+              <div className="field-group"><label className="field-label">Password</label><input required name="password" value={form.password} onChange={handleChange} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Subscription Amount</label><input required name="amount" value={form.amount} onChange={handleChange} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Subscription End Date</label><input required type="date" name="endDate" value={form.endDate} onChange={handleChange} className="field-input" /></div>
+              <div className="md:col-span-2">
+                <ImageUploader label="Profile Photo" currentUrl={form.photo} onUpload={(url) => setForm(f=>({...f,photo:url}))} />
+              </div>
+              {isMasterAdmin && (
+                <div className="flex items-end pb-4"><label className="flex items-center gap-2 cursor-pointer font-semibold text-pink-600 text-sm"><input type="checkbox" name="isAdmin" checked={form.isAdmin} onChange={handleChange} className="w-5 h-5" /> Make Admin</label></div>
+              )}
+              <div className="md:col-span-2 flex gap-3 mt-2">
+                <button type="submit" className="btn-save" style={{width:'auto',padding:'12px 32px'}}>{editId ? '✔ Update User' : '➕ Create User'}</button>
+                {editId && <button type="button" className="btn-secondary" onClick={() => {setEditId(null); setForm(initForm);}}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+
+          <h3 className="font-semibold text-base mb-4">All Users ({users.length})</h3>
+          <div className="section-card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr><th className="table-th">Photo</th><th className="table-th">ID</th><th className="table-th">Name</th><th className="table-th">Email</th><th className="table-th">Subscription</th><th className="table-th">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="table-td">
+                        {u.photo ? <img src={u.photo} className="w-10 h-10 rounded-lg object-cover" /> : <div style={{width:40,height:40,borderRadius:8,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>👤</div>}
+                      </td>
+                      <td className="table-td font-medium">
+                        {u.id}{u.isAdmin && <span className="badge-admin">Admin</span>}
+                        {u.id === MASTER_ADMIN_ID && <span className="badge-admin" style={{background:'#1a0020', color:'#7c3aed'}}>Master</span>}
+                      </td>
+                      <td className="table-td">{u.name}</td>
+                      <td className="table-td text-gray-500">{u.email}</td>
+                      <td className="table-td"><span className={new Date() > new Date(u.subscriptionEndDate) ? 'badge-expired' : 'badge-active'}>{u.subscriptionEndDate}</span></td>
+                      <td className="table-td">
+                        {(!u.isAdmin || isMasterAdmin) && u.id !== MASTER_ADMIN_ID ? (
+                          <>
+                            <span className="action-btn-edit" onClick={() => handleEdit(u)}>Edit</span>
+                            <span className="action-btn-del" onClick={() => handleDelete(u.id)}>Delete</span>
+                          </>
+                        ) : (
+                          <span style={{color:'#9ca3af', fontSize:12}}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && <tr><td colSpan="6" className="table-td text-center text-gray-400 py-8">No users yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── PROFILE MANAGEMENT ── */
+    function ProfileManagement() {
+      const initForm = { name:'', age:'', city:'', state:'', tags:'', images:'' };
+      const [form, setForm] = useState(initForm);
+      const [profiles, setProfiles] = useState([]);
+      const [editId, setEditId] = useState(null);
+
+      useEffect(() => {
+        return db.collection('profiles').onSnapshot(snap => {
+          setProfiles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+      }, []);
+
+      const handleSubmit = async e => {
+        e.preventDefault();
+        try {
+          const imgArray = form.images.split(',').map(t => t.trim()).filter(t => t);
+          if (!imgArray.length) { alert('Please enter at least one image URL.'); return; }
+          const data = {
+            name: form.name, age: parseInt(form.age), city: form.city, state: form.state,
+            tags: form.tags ? form.tags.split(',').map(t => t.trim()) : [],
+            img: imgArray[0], images: imgArray,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          if (editId) {
+            await db.collection('profiles').doc(editId).update(data);
+          } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('profiles').add(data);
+          }
+          alert(`Profile ${editId ? 'updated' : 'added'}!`);
+          setForm(initForm); setEditId(null);
+        } catch (err) {
+          alert('Error saving profile: ' + err.message);
+          console.error('Profile save error:', err);
+        }
+      };
+
+      const handleEdit = p => {
+        setForm({ name:p.name, age:p.age, city:p.city, state:p.state, tags:p.tags?.join(', ')||'', images:p.images?.join(', ')||p.img });
+        setEditId(p.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleDelete = async id => {
+        if (confirm('Delete this profile?')) await db.collection('profiles').doc(id).delete();
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto">
+          <h2 className="section-header">💖 Profile Management</h2>
+          <p className="section-subheader">{editId ? `Editing profile ID: ${editId}` : 'Add female profile cards visible on the main website.'}</p>
+
+          <div className="section-card mb-8">
+            <h3 className="font-semibold text-base mb-5">{editId ? '✏️ Edit Profile' : '➕ Add Profile Card'}</h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="field-group"><label className="field-label">Full Name</label><input required value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">Age</label><input required type="number" value={form.age} onChange={e=>setForm(f=>({...f,age:e.target.value}))} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">City</label><input required value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))} className="field-input" /></div>
+              <div className="field-group"><label className="field-label">State</label><input required value={form.state} onChange={e=>setForm(f=>({...f,state:e.target.value}))} className="field-input" /></div>
+              <div className="field-group md:col-span-2"><label className="field-label">Tags (comma separated, e.g. Music, Travel)</label><input required value={form.tags} onChange={e=>setForm(f=>({...f,tags:e.target.value}))} className="field-input" /></div>
+              <div className="field-group md:col-span-2">
+                <label className="field-label">Profile Images (upload at least 1)</label>
+                <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                  {[0,1,2,3].map(slotIdx => {
+                    const urls = form.images ? form.images.split(',').map(t=>t.trim()).filter(t=>t) : [];
+                    const slotUrl = urls[slotIdx] || '';
+                    return (
+                      <ImageUploader key={slotIdx} currentUrl={slotUrl} label={slotIdx === 0 ? 'Main Photo *' : `Photo ${slotIdx + 1}`} onUpload={(url) => {
+                        const current = form.images ? form.images.split(',').map(t=>t.trim()).filter(t=>t) : [];
+                        if (url) {
+                          current[slotIdx] = url;
+                        } else {
+                          current.splice(slotIdx, 1);
+                        }
+                        setForm(f=>({...f, images: current.filter(Boolean).join(', ')}));
+                      }} />
+                    );
+                  })}
+                  <div style={{fontSize:12,color:'#9ca3af'}}>Upload up to 4 photos. Click a slot to add/replace. Use ✕ to remove.</div>
+                </div>
+              </div>
+              <div className="md:col-span-2 flex gap-3 mt-2">
+                <button type="submit" className="btn-save" style={{width:'auto',padding:'12px 32px'}}>{editId ? '✔ Update Profile' : '➕ Add Profile'}</button>
+                {editId && <button type="button" className="btn-secondary" onClick={() => {setEditId(null); setForm(initForm);}}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+
+          <h3 className="font-semibold text-base mb-4">All Profiles ({profiles.length})</h3>
+          <div className="section-card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead><tr><th className="table-th">Photo</th><th className="table-th">Name & Age</th><th className="table-th">Location</th><th className="table-th">Photos</th><th className="table-th">Actions</th></tr></thead>
+                <tbody>
+                  {profiles.map(p => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="table-td"><img src={p.img} className="w-12 h-12 rounded-lg object-cover" /></td>
+                      <td className="table-td font-medium">{p.name}, {p.age}</td>
+                      <td className="table-td text-gray-500">{p.city}, {p.state}</td>
+                      <td className="table-td"><span className="badge-active">{p.images?.length || 1} photos</span></td>
+                      <td className="table-td">
+                        <span className="action-btn-edit" onClick={() => handleEdit(p)}>Edit</span>
+                        <span className="action-btn-del" onClick={() => handleDelete(p.id)}>Delete</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {profiles.length === 0 && <tr><td colSpan="5" className="table-td text-center text-gray-400 py-8">No profiles yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── TESTIMONIAL MANAGEMENT ── */
+    function TestimonialManagement() {
+      const initForm = { names:'', city:'', text:'', img:'' };
+      const [form, setForm] = useState(initForm);
+      const [stories, setStories] = useState([]);
+      const [editId, setEditId] = useState(null);
+
+      useEffect(() => {
+        return db.collection('testimonials').onSnapshot(snap => {
+          setStories(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+      }, []);
+
+      const handleSubmit = async e => {
+        e.preventDefault();
+        const data = { names:form.names, city:form.city, text:form.text, img:form.img, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (editId) {
+          await db.collection('testimonials').doc(editId).update(data);
+        } else {
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('testimonials').add(data);
+        }
+        alert(`Testimonial ${editId ? 'updated' : 'added'}!`);
+        setForm(initForm); setEditId(null);
+      };
+
+      const handleEdit = s => {
+        setForm({ names:s.names, city:s.city, text:s.text, img:s.img });
+        setEditId(s.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleDelete = async id => {
+        if (confirm('Delete this testimonial?')) await db.collection('testimonials').doc(id).delete();
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto">
+          <h2 className="section-header">💬 Testimonial Management</h2>
+          <p className="section-subheader">{editId ? `Editing testimonial: ${editId}` : 'Add success stories shown in the "Stories" section.'}</p>
+
+          <div className="section-card mb-8">
+            <h3 className="font-semibold text-base mb-5">{editId ? '✏️ Edit Testimonial' : '➕ Add Testimonial'}</h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="field-group"><label className="field-label">Couple Names</label><input required value={form.names} onChange={e=>setForm(f=>({...f,names:e.target.value}))} placeholder="Rahul & Priya" className="field-input" /></div>
+              <div className="field-group"><label className="field-label">City & State</label><input required value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))} placeholder="Delhi, India" className="field-input" /></div>
+              <div className="field-group md:col-span-2"><label className="field-label">Testimonial Text</label><textarea required value={form.text} onChange={e=>setForm(f=>({...f,text:e.target.value}))} rows={3} className="field-input" /></div>
+              <ImageUploader label="Couple Image" currentUrl={form.img} onUpload={(url) => setForm(f=>({...f,img:url}))} />
+              <div className="md:col-span-2 flex gap-3 mt-2">
+                <button type="submit" className="btn-save" style={{width:'auto',padding:'12px 32px'}}>{editId ? '✔ Update Testimonial' : '➕ Add Testimonial'}</button>
+                {editId && <button type="button" className="btn-secondary" onClick={() => {setEditId(null); setForm(initForm);}}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+
+          <h3 className="font-semibold text-base mb-4">All Testimonials ({stories.length})</h3>
+          <div className="section-card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead><tr><th className="table-th">Photo</th><th className="table-th">Names</th><th className="table-th">Snippet</th><th className="table-th">Actions</th></tr></thead>
+                <tbody>
+                  {stories.map(s => (
+                    <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="table-td"><img src={s.img} className="w-12 h-12 rounded-lg object-cover" /></td>
+                      <td className="table-td font-medium">{s.names}</td>
+                      <td className="table-td text-gray-500 max-w-xs truncate">{s.text}</td>
+                      <td className="table-td">
+                        <span className="action-btn-edit" onClick={() => handleEdit(s)}>Edit</span>
+                        <span className="action-btn-del" onClick={() => handleDelete(s.id)}>Delete</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {stories.length === 0 && <tr><td colSpan="4" className="table-td text-center text-gray-400 py-8">No testimonials yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── NEW EDITORS ── */
+    function GlobalReachEditor() {
+      const keys = ['globalTitle','globalSub'];
+      const defaults = { globalTitle: "We're Connecting Hearts in 15+ Countries", globalSub: 'A global community of singles looking for genuine relationships' };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">🌐 Global Reach Section</h2>
+          <p className="section-subheader">Edit the heading and subtitle of the "15+ Countries" flags section.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <Field label="Section Title" name="globalTitle" value={data.globalTitle} onChange={handle} />
+              <Field label="Section Subtitle" name="globalSub" value={data.globalSub} onChange={handle} rows={2} />
+              <p className="text-xs text-gray-400 mt-2 mb-4">Note: Country flags are static. Edit the source code to add/remove countries.</p>
+              <button type="submit" className="btn-save">💾 Save Global Reach</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function AboutSectionEditor() {
+      const keys = ['aboutBadge','aboutTitle','aboutDesc','aboutF1Title','aboutF1Desc','aboutF2Title','aboutF2Desc','aboutF3Title','aboutF3Desc','aboutF4Title','aboutF4Desc'];
+      const defaults = { aboutBadge: '🛡️ ABOUT LOVE CONNECT', aboutTitle: 'Building Meaningful Connections Across Asia & Beyond',
+        aboutDesc: "LoveConnect is Asia's trusted dating platform, helping thousands of singles find genuine relationships. We are proud to operate in 15+ countries and continuing to build an empire of love, trust & success.",
+        aboutF1Title: '100% Privacy', aboutF1Desc: 'Your privacy is our top priority',
+        aboutF2Title: 'Verified Profiles', aboutF2Desc: 'Manually verified for authentic connections',
+        aboutF3Title: 'Secure Platform', aboutF3Desc: 'Advanced security for a safe experience',
+        aboutF4Title: 'Trusted by Millions', aboutF4Desc: 'Millions of members trust LoveConnect'
+      };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">🏛️ About Section</h2>
+          <p className="section-subheader">Edit the "About Love Connect" section content, description, and 4 feature cards.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Section Header</h4>
+                <Field label="Badge Text" name="aboutBadge" value={data.aboutBadge} onChange={handle} />
+                <Field label="Title" name="aboutTitle" value={data.aboutTitle} onChange={handle} />
+                <Field label="Description" name="aboutDesc" value={data.aboutDesc} onChange={handle} rows={3} />
+              </div>
+              {[1,2,3,4].map(n => (
+                <div key={n} className="border-accent mb-6">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Feature Card {n}</h4>
+                  <Field label={`Card ${n} Title`} name={`aboutF${n}Title`} value={data[`aboutF${n}Title`]} onChange={handle} />
+                  <Field label={`Card ${n} Description`} name={`aboutF${n}Desc`} value={data[`aboutF${n}Desc`]} onChange={handle} rows={2} />
+                </div>
+              ))}
+              <button type="submit" className="btn-save">💾 Save About Section</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function StatsBannerPinkEditor() {
+      const keys = ['sb1Icon','sb1Num','sb1Label','sb2Icon','sb2Num','sb2Label','sb3Icon','sb3Num','sb3Label','sb4Icon','sb4Num','sb4Label','sb5Icon','sb5Num','sb5Label'];
+      const defaults = {
+        sb1Icon: '👥', sb1Num: '2M+', sb1Label: 'Happy Members',
+        sb2Icon: '🌍', sb2Num: '15+', sb2Label: 'Countries',
+        sb3Icon: '👑', sb3Num: '7', sb3Label: 'Years of Success',
+        sb4Icon: '💝', sb4Num: '1M+', sb4Label: 'Successful Matches',
+        sb5Icon: '🛡️', sb5Num: '100%', sb5Label: 'Privacy Guarantee'
+      };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">📈 Stats Pink Banner</h2>
+          <p className="section-subheader">Edit the 5 statistics in the pink banner (Members, Countries, Years, Matches, Privacy).</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              {[1,2,3,4,5].map(n => (
+                <div key={n} className="border-accent mb-6">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Stat {n}</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="Icon (emoji)" name={`sb${n}Icon`} value={data[`sb${n}Icon`]} onChange={handle} />
+                    <Field label="Number (e.g. 2M+)" name={`sb${n}Num`} value={data[`sb${n}Num`]} onChange={handle} />
+                    <Field label="Label" name={`sb${n}Label`} value={data[`sb${n}Label`]} onChange={handle} />
+                  </div>
+                </div>
+              ))}
+              <button type="submit" className="btn-save">💾 Save Stats Banner</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function JourneyEditor() {
+      const keys = ['journeyTitle','journeySubtitle','journeyDesc','journeyImg'];
+      const defaults = { journeyTitle: 'Our Journey of Love & Success', journeySubtitle: '7 Years of Building an Empire',
+        journeyDesc: "From a small idea to Asia's trusted dating platform.\nThank you for being a part of our beautiful journey.",
+        journeyImg: 'https://images.unsplash.com/photo-1583394293253-16440e1c93de?auto=format&fit=crop&w=800&q=80'
+      };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">🗺️ Journey Timeline Section</h2>
+          <p className="section-subheader">Edit the heading, subtitle, and description of the timeline section. Note: timeline milestone items (icons, years, titles, descriptions) are static and can be edited in the source code.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <Field label="Section Title" name="journeyTitle" value={data.journeyTitle} onChange={handle} />
+              <Field label="Subtitle (Pink)" name="journeySubtitle" value={data.journeySubtitle} onChange={handle} />
+              <Field label="Description" name="journeyDesc" value={data.journeyDesc} onChange={handle} rows={3} />
+              <ImageUploader label="Journey Image" currentUrl={data.journeyImg} onUpload={(url) => { const e = { target: { name: 'journeyImg', value: url } }; handle(e); }} />
+              <button type="submit" className="btn-save">💾 Save Journey Section</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function TrustBannerEditor() {
+      const keys = ['tbTitle','tb1Title','tb1Desc','tb2Title','tb2Desc','tb3Title','tb3Desc','tb4Title','tb4Desc','tb5Title','tb5Desc','tbRating','tbStars'];
+      const defaults = {
+        tbTitle: 'Why Millions Trust LoveConnect',
+        tb1Title: 'Real People', tb1Desc: 'Genuine profiles, real connections',
+        tb2Title: '100% Private', tb2Desc: 'Your data is safe with us',
+        tb3Title: 'Average Rating', tb3Desc: 'by our members',
+        tb4Title: '24/7 Support', tb4Desc: "We're here for you, always",
+        tb5Title: 'Trusted Platform', tb5Desc: 'Licensed & compliant with data protection',
+        tbRating: '4.8/5', tbStars: '★★★★★'
+      };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">⭐ Trust Banner Section</h2>
+          <p className="section-subheader">Edit the "Why Millions Trust LoveConnect" banner — title, 5 feature cards, and the rating center card.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <Field label="Banner Title" name="tbTitle" value={data.tbTitle} onChange={handle} />
+              {[1,2,4,5].map(n => (
+                <div key={n} className="border-accent mb-6">
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Card {n}</h4>
+                  <Field label="Title" name={`tb${n}Title`} value={data[`tb${n}Title`]} onChange={handle} />
+                  <Field label="Description" name={`tb${n}Desc`} value={data[`tb${n}Desc`]} onChange={handle} rows={2} />
+                </div>
+              ))}
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Center Rating Card</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Rating (e.g. 4.8/5)" name="tbRating" value={data.tbRating} onChange={handle} />
+                  <Field label="Stars (e.g. ★★★★★)" name="tbStars" value={data.tbStars} onChange={handle} />
+                </div>
+                <Field label="Center Card Title" name="tb3Title" value={data.tb3Title} onChange={handle} />
+                <Field label="Center Card Sub-description" name="tb3Desc" value={data.tb3Desc} onChange={handle} rows={2} />
+              </div>
+              <button type="submit" className="btn-save">💾 Save Trust Banner</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── COUNTRIES BALLS EDITOR ── */
+    function CountriesBallsEditor() {
+      const initForm = { flag: '', name: '', img: '' };
+      const [form, setForm] = useState(initForm);
+      const [countries, setCountries] = useState([]);
+      const [editId, setEditId] = useState(null);
+
+      useEffect(() => {
+        return db.collection('countries').onSnapshot(snap => {
+          setCountries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, err => console.error('Countries fetch error:', err));
+      }, []);
+
+      const handleSubmit = async e => {
+        e.preventDefault();
+        try {
+          const data = {
+            flag: form.flag, name: form.name, img: form.img,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          if (editId) {
+            await db.collection('countries').doc(editId).update(data);
+          } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('countries').add(data);
+          }
+          alert(`Country ${editId ? 'updated' : 'added'}!`);
+          setForm(initForm); setEditId(null);
+        } catch (err) {
+          alert('Error saving country: ' + err.message);
+          console.error('Country save error:', err);
+        }
+      };
+
+      const handleEdit = c => {
+        setForm({ flag: c.flag||'', name: c.name||'', img: c.img||'' });
+        setEditId(c.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleDelete = async id => {
+        if (confirm('Delete this country?')) {
+          try {
+            await db.collection('countries').doc(id).delete();
+          } catch (err) {
+            alert('Error deleting: ' + err.message);
+          }
+        }
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto">
+          <h2 className="section-header">🌍 Countries Balls</h2>
+          <p className="section-subheader">{editId ? `Editing: ${editId}` : 'Add countries with flag emoji and image to appear in the Global Reach section on the website.'}</p>
+
+          <div className="section-card mb-8">
+            <h3 className="font-semibold text-base mb-5">{editId ? '✏️ Edit Country' : '➕ Add Country Ball'}</h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="field-group">
+                <label className="field-label">Flag Emoji</label>
+                <input required name="flag" value={form.flag} onChange={e=>setForm(f=>({...f,flag:e.target.value}))} className="field-input" placeholder="e.g. 🇮🇳" />
+              </div>
+              <div className="field-group">
+                <label className="field-label">Country Name</label>
+                <input required name="name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} className="field-input" placeholder="e.g. India" />
+              </div>
+              <ImageUploader label="Country Image (optional)" currentUrl={form.img} onUpload={(url) => setForm(f=>({...f,img:url}))} />
+              {form.flag && (
+                <div className="md:col-span-2 flex items-center gap-4">
+                  <div style={{width:60,height:60,borderRadius:'50%',background:'#f9f9f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,boxShadow:'0 4px 10px rgba(0,0,0,0.1)'}}>
+                    {form.img ? <img src={form.img} alt="preview" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}} /> : <span>{form.flag}</span>}
+                  </div>
+                  <span style={{fontSize:13,color:'#6b7280'}}>Preview</span>
+                </div>
+              )}
+              <div className="md:col-span-2 flex gap-3 mt-2">
+                <button type="submit" className="btn-save" style={{width:'auto',padding:'12px 32px'}}>{editId ? '✔ Update Country' : '➕ Add Country'}</button>
+                {editId && <button type="button" className="btn-secondary" onClick={() => {setEditId(null); setForm(initForm);}}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+
+          <h3 className="font-semibold text-base mb-4">All Countries ({countries.length})</h3>
+          <div className="section-card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr>
+                    <th className="table-th">Flag</th>
+                    <th className="table-th">Country Name</th>
+                    <th className="table-th">Image</th>
+                    <th className="table-th">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {countries.map(c => (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="table-td" style={{fontSize:28}}>{c.flag}</td>
+                      <td className="table-td font-medium">{c.name}</td>
+                      <td className="table-td">
+                        {c.img ? <img src={c.img} alt={c.name} style={{width:40,height:40,borderRadius:'50%',objectFit:'cover'}} /> : '—'}
+                      </td>
+                      <td className="table-td">
+                        <span className="action-btn-edit" onClick={() => handleEdit(c)}>Edit</span>
+                        <span className="action-btn-del" onClick={() => handleDelete(c.id)}>Delete</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {countries.length === 0 && (
+                    <tr><td colSpan="4" className="table-td text-center text-gray-400 py-8">No countries yet. Add your first country ball!</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── LOGO EDITOR ── */
+    function LogoEditor() {
+      const keys = ['logoImg', 'logoSize'];
+      const defaults = { logoImg: '', logoSize: 'medium' };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+
+      const sizeOptions = [
+        { value: 'small', label: 'Small (50px) — Best for navbar' },
+        { value: 'medium', label: 'Medium (75px) — Best for footer' },
+        { value: 'large', label: 'Large (120px) — Best for splash screen' },
+      ];
+
+      const sizePreviews = { small: 50, medium: 75, large: 120 };
+
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">🖼️ Logo</h2>
+          <p className="section-subheader">Upload your logo image and choose its display size. The logo will appear on the navbar, footer, and loading screen — all at the same selected size.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <ImageUploader label="Logo Image" currentUrl={data.logoImg} onUpload={(url) => { const e = { target: { name: 'logoImg', value: url } }; handle(e); }} />
+
+              <div className="field-group">
+                <label className="field-label">Logo Display Size</label>
+                <select name="logoSize" value={data.logoSize} onChange={handle} className="field-input" style={{ cursor: 'pointer' }}>
+                  {sizeOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">This size applies to navbar, footer, and loading screen logo.</p>
+              </div>
+
+              {data.logoImg && (
+                <div className="field-group">
+                  <label className="field-label">Preview at selected size</label>
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: 16, background: '#f9fafb', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+                    <img src={data.logoImg} alt="Logo preview" style={{ height: sizePreviews[data.logoSize] || 75, width: 'auto', maxWidth: 300, objectFit: 'contain' }} />
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" className="btn-save">💾 Save Logo</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── FOOTER EDITOR ── */
+    function FooterEditor() {
+      const keys = [
+        'footerAbout','footerQuickLinks','footerPhone','footerEmail',
+        'footerAddress','footerHours','footerCopyright','footerSocialFb','footerSocialIg','footerSocialTw','footerSocialYt'
+      ];
+      const defaults = {
+        footerAbout: 'LoveConnect is a trusted platform where real people come together to build meaningful relationships that last a lifetime.',
+        footerQuickLinks: 'About Us, How It Works, Success Stories, Blog, Contact Us',
+        footerPhone: '+91 98765 43210',
+        footerEmail: 'support@loveconnect.com',
+        footerAddress: 'Kolkata, West Bengal, India',
+        footerHours: 'Mon–Sun: 9AM–9PM',
+        footerCopyright: '© 2024 LoveConnect. All Rights Reserved.',
+        footerSocialFb: 'f',
+        footerSocialIg: '📷',
+        footerSocialTw: '🐦',
+        footerSocialYt: '▶'
+      };
+      const { data, handle, save, loading } = useGlobalContent(keys, defaults);
+      if (loading) return <div className="text-gray-400 p-8">Loading...</div>;
+      return (
+        <div className="max-w-2xl mx-auto">
+          <h2 className="section-header">📝 Footer Section</h2>
+          <p className="section-subheader">Edit all the content displayed in the website footer — about text, quick links, contact info, social icons, and copyright.</p>
+          <div className="section-card">
+            <form onSubmit={save}>
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">About & Brand</h4>
+                <Field label="About Description" name="footerAbout" value={data.footerAbout} onChange={handle} rows={3} />
+              </div>
+
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Quick Links</h4>
+                <Field label="Quick Links (comma separated)" name="footerQuickLinks" value={data.footerQuickLinks} onChange={handle} />
+                <p className="text-xs text-gray-400 mt-1">Separate each link label with a comma (e.g. About Us, How It Works, Success Stories)</p>
+              </div>
+
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Phone Number" name="footerPhone" value={data.footerPhone} onChange={handle} />
+                  <Field label="Email Address" name="footerEmail" value={data.footerEmail} onChange={handle} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Address" name="footerAddress" value={data.footerAddress} onChange={handle} />
+                  <Field label="Operating Hours" name="footerHours" value={data.footerHours} onChange={handle} />
+                </div>
+              </div>
+
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Social Media Icons</h4>
+                <p className="text-xs text-gray-400 mb-3">Enter any emoji or text for each social button shown in the footer.</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Field label="Facebook" name="footerSocialFb" value={data.footerSocialFb} onChange={handle} />
+                  <Field label="Instagram" name="footerSocialIg" value={data.footerSocialIg} onChange={handle} />
+                  <Field label="Twitter" name="footerSocialTw" value={data.footerSocialTw} onChange={handle} />
+                  <Field label="YouTube" name="footerSocialYt" value={data.footerSocialYt} onChange={handle} />
+                </div>
+              </div>
+
+              <div className="border-accent mb-6">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Copyright</h4>
+                <Field label="Copyright Text" name="footerCopyright" value={data.footerCopyright} onChange={handle} />
+              </div>
+
+              <button type="submit" className="btn-save">💾 Save Footer Section</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── ACCOUNT REQUESTS EDITOR ── */
+    function AccountRequestsEditor() {
+      const [requests, setRequests] = useState([]);
+      const [expandedId, setExpandedId] = useState(null);
+
+      useEffect(() => {
+        return db.collection('account_requests').orderBy('createdAt', 'desc').onSnapshot(snap => {
+          setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, err => console.error('Account requests fetch error:', err));
+      }, []);
+
+      const handleDelete = async id => {
+        if (confirm('Delete this request?')) {
+          try {
+            await db.collection('account_requests').doc(id).delete();
+          } catch (err) {
+            alert('Error deleting: ' + err.message);
+          }
+        }
+      };
+
+      const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Copied: ' + text);
+        }).catch(() => {
+          prompt('Copy manually:', text);
+        });
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto">
+          <h2 className="section-header">📋 Account Create Requests</h2>
+          <p className="section-subheader">Users who submitted "Make My Profile" requests from the website.</p>
+
+          <div style={{ display: 'grid', gap: 16 }}>
+            {requests.map(req => (
+              <div key={req.id}>
+                <div onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
+                  style={{
+                    background: 'white', borderRadius: 16, padding: '20px 24px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #f3f4f6',
+                    cursor: 'pointer', transition: 'all 0.2s',
+                    borderLeft: expandedId === req.id ? '4px solid #7c3aed' : '4px solid transparent'
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: '50%',
+                        background: '#ede9fe', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 20, color: '#7c3aed'
+                      }}>👤</div>
+                      <div>
+                        <h4 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{req.name}</h4>
+                        <p style={{ fontSize: 13, color: '#6b7280' }}>
+                          {req.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
+                        </p>
+                      </div>
+                    </div>
+                    <span style={{ color: '#9ca3af', fontSize: 20, transition: 'transform 0.2s', transform: expandedId === req.id ? 'rotate(180deg)' : 'none' }}>
+                      ▼
+                    </span>
+                  </div>
+
+                  {expandedId === req.id && (
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', padding: '12px 16px', borderRadius: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Name</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{req.name}</div>
+                          </div>
+                          <button onClick={() => copyToClipboard(req.name)} style={{
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: 8,
+                            padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#7c3aed',
+                            display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500
+                          }}>📋 Copy</button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', padding: '12px 16px', borderRadius: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Phone</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{req.phone}</div>
+                          </div>
+                          <button onClick={() => copyToClipboard(req.phone)} style={{
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: 8,
+                            padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#7c3aed',
+                            display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500
+                          }}>📋 Copy</button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', padding: '12px 16px', borderRadius: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Email</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{req.email}</div>
+                          </div>
+                          <button onClick={() => copyToClipboard(req.email)} style={{
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: 8,
+                            padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#7c3aed',
+                            display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500
+                          }}>📋 Copy</button>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+                        <button onClick={() => handleDelete(req.id)} style={{
+                          width: '100%', padding: '12px', border: 'none', borderRadius: 10,
+                          background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 14,
+                          cursor: 'pointer', transition: 'background 0.2s',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                        }}>🗑️ Delete Request</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {requests.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
+                <p style={{ fontSize: 16, fontWeight: 500 }}>No account requests yet.</p>
+                <p style={{ fontSize: 13, marginTop: 6 }}>When users submit the "Make My Profile" form, requests will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
